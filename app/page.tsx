@@ -1,6 +1,57 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
+import * as XLSX from 'xlsx';
 
 export default function Home() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [data, setData] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchDatabaseData = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/dbdata');
+      if (!response.ok) {
+        throw new Error('数据获取失败');
+      }
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '发生未知错误');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 导出Excel功能
+  const exportToExcel = () => {
+    if (data.length === 0) {
+      setError('没有数据可导出');
+      return;
+    }
+
+    try {
+      // 创建工作簿和工作表
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      
+      // 将工作表添加到工作簿
+      XLSX.utils.book_append_sheet(workbook, worksheet, "数据库数据");
+      
+      // 生成文件名（包含当前日期）
+      const fileName = `数据库导出_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      // 导出Excel文件
+      XLSX.writeFile(workbook, fileName);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '导出Excel失败');
+    }
+  };
+
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
@@ -12,6 +63,44 @@ export default function Home() {
           height={38}
           priority
         />
+        
+        {/* 数据库连接按钮 */}
+        <div className="w-full max-w-3xl">
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button 
+              onClick={fetchDatabaseData}
+              disabled={isLoading}
+              className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-blue-600 text-white gap-2 hover:bg-blue-700 font-medium text-base h-12 px-5 flex-grow sm:flex-grow-0"
+            >
+              {isLoading ? '正在连接数据库...' : '连接PostgreSQL数据库'}
+            </button>
+            
+            {data.length > 0 && (
+              <button 
+                onClick={exportToExcel}
+                className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-green-600 text-white gap-2 hover:bg-green-700 font-medium text-base h-12 px-5 flex-grow sm:flex-grow-0"
+              >
+                导出为Excel
+              </button>
+            )}
+          </div>
+          
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+              {error}
+            </div>
+          )}
+          
+          {data.length > 0 && (
+            <div className="mt-4">
+              <h2 className="text-lg font-semibold mb-3">查询结果:</h2>
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto">
+                <pre className="text-sm">{JSON.stringify(data, null, 2)}</pre>
+              </div>
+            </div>
+          )}
+        </div>
+
         <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
           <li className="mb-2 tracking-[-.01em]">
             Get started by editing{" "}
