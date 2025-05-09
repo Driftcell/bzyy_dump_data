@@ -7,19 +7,6 @@ const pool = new Pool({
   connectionString: 'postgresql://postgres:zyy!1234*@bozhiyunyu.cn:5432/LightBZYYDB'
 });
 
-// 验证请求密码
-function validateAuth(request: Request) {
-  const headersList = headers();
-  const authorization = headersList.get('Authorization');
-  
-  // 预期格式: 'Bearer Minds@2024!'
-  if (!authorization || !authorization.startsWith('Bearer ')) {
-    return false;
-  }
-  
-  const token = authorization.substring(7);
-  return token === 'Minds@2024!';
-}
 
 export async function GET() {
   try {
