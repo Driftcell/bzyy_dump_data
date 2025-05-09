@@ -8,13 +8,30 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  const validatePassword = () => {
+    const correctPassword = "Minds@2024!";
+    if (password === correctPassword) {
+      setIsAuthenticated(true);
+      setPasswordError(null);
+    } else {
+      setPasswordError("密码错误，请重试");
+    }
+  };
 
   const fetchDatabaseData = async () => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const response = await fetch('/api/dbdata');
+      const response = await fetch('/api/dbdata', {
+        headers: {
+          'Authorization': 'Bearer Minds@2024!'
+        }
+      });
       if (!response.ok) {
         throw new Error('数据获取失败');
       }
@@ -64,42 +81,78 @@ export default function Home() {
           priority
         />
         
-        {/* 数据库连接按钮 */}
-        <div className="w-full max-w-3xl">
-          <div className="flex flex-wrap gap-2 mb-4">
-            <button 
-              onClick={fetchDatabaseData}
-              disabled={isLoading}
-              className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-blue-600 text-white gap-2 hover:bg-blue-700 font-medium text-base h-12 px-5 flex-grow sm:flex-grow-0"
+        {!isAuthenticated ? (
+          <div className="w-full max-w-3xl bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+            <h2 className="text-xl font-bold mb-4">系统访问验证</h2>
+            <div className="mb-4">
+              <label htmlFor="password" className="block text-sm font-medium mb-2">
+                请输入访问密码
+              </label>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onKeyDown={(e) => e.key === "Enter" && validatePassword()}
+              />
+            </div>
+            {passwordError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                {passwordError}
+              </div>
+            )}
+            <button
+              onClick={validatePassword}
+              className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-blue-600 text-white gap-2 hover:bg-blue-700 font-medium text-base h-12 px-5"
             >
-              {isLoading ? '正在连接数据库...' : '连接PostgreSQL数据库'}
+              验证密码
             </button>
+          </div>
+        ) : (
+          <div className="w-full max-w-3xl">
+            <div className="flex flex-wrap gap-2 mb-4">
+              <button 
+                onClick={fetchDatabaseData}
+                disabled={isLoading}
+                className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-blue-600 text-white gap-2 hover:bg-blue-700 font-medium text-base h-12 px-5 flex-grow sm:flex-grow-0"
+              >
+                {isLoading ? '正在连接数据库...' : '连接PostgreSQL数据库'}
+              </button>
+              
+              {data.length > 0 && (
+                <button 
+                  onClick={exportToExcel}
+                  className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-green-600 text-white gap-2 hover:bg-green-700 font-medium text-base h-12 px-5 flex-grow sm:flex-grow-0"
+                >
+                  导出为Excel
+                </button>
+              )}
+              
+              <button 
+                onClick={() => setIsAuthenticated(false)}
+                className="rounded-full border border-solid border-gray-300 transition-colors flex items-center justify-center bg-white text-red-600 gap-2 hover:bg-gray-100 font-medium text-base h-12 px-5 flex-grow sm:flex-grow-0"
+              >
+                退出登录
+              </button>
+            </div>
+            
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                {error}
+              </div>
+            )}
             
             {data.length > 0 && (
-              <button 
-                onClick={exportToExcel}
-                className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-green-600 text-white gap-2 hover:bg-green-700 font-medium text-base h-12 px-5 flex-grow sm:flex-grow-0"
-              >
-                导出为Excel
-              </button>
+              <div className="mt-4">
+                <h2 className="text-lg font-semibold mb-3">查询结果:</h2>
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto">
+                  <pre className="text-sm">{JSON.stringify(data, null, 2)}</pre>
+                </div>
+              </div>
             )}
           </div>
-          
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
-            </div>
-          )}
-          
-          {data.length > 0 && (
-            <div className="mt-4">
-              <h2 className="text-lg font-semibold mb-3">查询结果:</h2>
-              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto">
-                <pre className="text-sm">{JSON.stringify(data, null, 2)}</pre>
-              </div>
-            </div>
-          )}
-        </div>
+        )}
 
         <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
           <li className="mb-2 tracking-[-.01em]">
